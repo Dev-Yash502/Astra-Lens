@@ -224,13 +224,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col relative text-zinc-100">
-      {/* Background Aurora WebGL Shader effect */}
-      <div className="absolute inset-0 z-[-1] pointer-events-none overflow-hidden opacity-30">
+      {/* Background Aurora WebGL Shader effect - Fixed position for viewport-lock on mobile */}
+      <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden opacity-35">
         <Aurora 
-          colorStops={["#5227FF", "#7cff67", "#5227FF"]}
-          blend={0.65}
-          amplitude={1.2}
-          speed={0.8}
+          colorStops={["#7cff67", "#B497CF", "#5227FF"]}
+          blend={0.72}
+          amplitude={1.0}
+          speed={1.8}
         />
       </div>
 

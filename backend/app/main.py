@@ -63,17 +63,16 @@ def prune_local_mock_scans(max_scans: int = 50):
                             except Exception as e:
                                 print(f"Error removing cached mock scan file: {e}")
 
-# Image Prediction Endpoint
-@app.post("/api/predict", response_model=PredictResponse)
-async def predict_image(
-    files: UploadFile = File(...), 
-    method: str = Form("gradcam"),
-    user = Depends(get_current_user)
-):
+# Helper to process a single image prediction
+async def process_single_prediction(
+    file: UploadFile,
+    method: str,
+    user
+) -> dict:
     start_time = time.perf_counter()
     # Read file bytes to compute SHA-256 hash
-    file_bytes = await files.read()
-    await files.seek(0) # Reset file pointer for subsequent copy
+    file_bytes = await file.read()
+    await file.seek(0) # Reset file pointer for subsequent copy
     
     image_hash = hashlib.sha256(file_bytes).hexdigest()
     user_id = user.id if hasattr(user, 'id') else user.get('id')
@@ -89,7 +88,7 @@ async def predict_image(
     
     # Save original image locally temporarily
     with open(temp_orig_path, "wb") as buffer:
-        shutil.copyfileobj(files.file, buffer)
+        shutil.copyfileobj(file.file, buffer)
         
     try:
         # Load image for PyTorch
@@ -113,7 +112,7 @@ async def predict_image(
         labels = ["FAKE", "REAL"]
         prediction_label = labels[prediction_idx]
         
-        print(f"[DEBUG PREDICT] File: {files.filename} | Logits: {outputs[0].tolist()} | Probs: {probs[0].tolist()} | Pred Index: {prediction_idx} -> {prediction_label}", flush=True)
+        print(f"[DEBUG PREDICT] File: {file.filename} | Logits: {outputs[0].tolist()} | Probs: {probs[0].tolist()} | Pred Index: {prediction_idx} -> {prediction_label}", flush=True)
         
         # Generate Grad-CAM / Grad-CAM++ heatmap based on selected method
         target_layer = model.features[8]
@@ -142,9 +141,6 @@ async def predict_image(
         image_url = ""
         heatmap_url = ""
         
-        # Determine authorized user ID
-        user_id = user.id if hasattr(user, 'id') else user.get('id')
-        
         # Upload to Supabase Storage & Insert record
         if supabase:
             try:
@@ -165,7 +161,7 @@ async def predict_image(
                 # Save scan record in database
                 scan_record = {
                     "user_id": user_id,
-                    "filename": files.filename,
+                    "filename": file.filename,
                     "prediction": prediction_label,
                     "confidence": confidence,
                     "image_url": image_url,
@@ -189,7 +185,7 @@ async def predict_image(
             mock_item = {
                 "id": file_id,
                 "user_id": user_id,
-                "filename": files.filename,
+                "filename": file.filename,
                 "prediction": prediction_label,
                 "confidence": confidence,
                 "image_url": image_url,
@@ -238,6 +234,28 @@ async def predict_image(
                     os.remove(temp_heat_path)
             except Exception as e:
                 print(f"Failed to clean up temporary files: {e}")
+
+# Single Image Prediction Endpoint
+@app.post("/api/predict", response_model=PredictResponse)
+async def predict_image(
+    files: UploadFile = File(...), 
+    method: str = Form("gradcam"),
+    user = Depends(get_current_user)
+):
+    return await process_single_prediction(files, method, user)
+
+# Batch Images Prediction Endpoint
+@app.post("/api/predict/batch", response_model=List[PredictResponse])
+async def predict_batch(
+    files: List[UploadFile] = File(...),
+    method: str = Form("gradcam"),
+    user = Depends(get_current_user)
+):
+    results = []
+    for file in files:
+        res = await process_single_prediction(file, method, user)
+        results.append(res)
+    return results
 
 # History Endpoint
 @app.get("/api/history", response_model=List[HistoryItem])

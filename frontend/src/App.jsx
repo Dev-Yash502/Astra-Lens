@@ -33,6 +33,10 @@ export default function App() {
   // Predict Scan States
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
+  const [batchResults, setBatchResults] = useState([]);
+  const [selectedBatchIndex, setSelectedBatchIndex] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [heatmapOpacity, setHeatmapOpacity] = useState(0.5);
@@ -161,34 +165,58 @@ export default function App() {
     setScanResult(null);
     setSelectedFile(null);
     setPreviewUrl('');
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setBatchResults([]);
+    setSelectedBatchIndex(0);
     setCurrentTab('landing');
   };
 
   // Handle Image Selection
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      setSelectedFiles(files);
+      
+      const urls = files.map(file => URL.createObjectURL(file));
+      setPreviewUrls(urls);
+      
+      // Maintain compatibility with components expecting single values
+      setSelectedFile(files[0]);
+      setPreviewUrl(urls[0]);
+      
       setScanResult(null);
+      setBatchResults([]);
+      setSelectedBatchIndex(0);
     }
   };
 
   // Predict Inference
   const handleScan = async (e) => {
     e.preventDefault();
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
 
     setIsScanning(true);
     setScanResult(null);
+    setBatchResults([]);
+    setSelectedBatchIndex(0);
+
+    const isBatch = selectedFiles.length > 1;
+    const endpoint = isBatch ? '/api/predict/batch' : '/api/predict';
 
     const formData = new FormData();
-    formData.append('files', selectedFile);
+    if (isBatch) {
+      selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+    } else {
+      formData.append('files', selectedFiles[0]);
+    }
     formData.append('method', xaiMethod);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch('/api/predict', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
@@ -196,10 +224,20 @@ export default function App() {
         body: formData
       });
       const data = await response.json();
-      if (data.status === 'success') {
-        setScanResult(data);
+      
+      if (isBatch) {
+        if (Array.isArray(data) && data.length > 0) {
+          setBatchResults(data);
+          setScanResult(data[0]); // default to first result active
+        } else {
+          alert('Batch prediction failed.');
+        }
       } else {
-        alert(data.detail || 'Prediction failed.');
+        if (data.status === 'success') {
+          setScanResult(data);
+        } else {
+          alert(data.detail || 'Prediction failed.');
+        }
       }
     } catch (err) {
       alert('Error connecting to FastAPI backend.');
@@ -292,13 +330,49 @@ export default function App() {
                 isScanning={isScanning}
                 previewUrl={previewUrl}
                 selectedFile={selectedFile}
+                selectedFiles={selectedFiles}
+                previewUrls={previewUrls}
                 handleFileChange={handleFileChange}
                 handleScan={handleScan}
                 xaiMethod={xaiMethod}
                 setXaiMethod={setXaiMethod}
               />
               
-              <div className="lg:col-span-7 flex flex-col justify-center">
+              <div className="lg:col-span-7 flex flex-col justify-center w-full">
+                {batchResults.length > 0 && (
+                  <div className="glass-panel p-5 w-full mb-6 flex flex-col gap-3">
+                    <span className="font-space font-bold text-xs uppercase tracking-wider text-indigo-400">
+                      ⚡ Batch Results ({batchResults.length} Images Scanned)
+                    </span>
+                    <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                      {batchResults.map((result, idx) => {
+                        const isSelected = selectedBatchIndex === idx;
+                        const isReal = result.prediction === 'REAL';
+                        const imgSrc = result.orig_b64 
+                          ? `data:image/jpeg;base64,${result.orig_b64}` 
+                          : (result.orig_url_fallback || result.image_url);
+                        
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setSelectedBatchIndex(idx);
+                              setScanResult(result);
+                            }}
+                            className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${isSelected ? 'border-indigo-500 scale-105 shadow-glow-sm' : 'border-white/10 hover:border-white/30'}`}
+                          >
+                            <img src={imgSrc} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                            <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${isReal ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                              {isReal ? 'R' : 'F'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <ResultCard 
                   scanResult={scanResult}
                   heatmapOpacity={heatmapOpacity}

@@ -104,3 +104,34 @@ def test_mock_history_flow():
         assert "test_history_item.jpg" in filenames
     finally:
         main.supabase = orig_supabase
+
+def test_batch_prediction():
+    """Test POST /api/predict/batch with multiple files"""
+    img1 = Image.new("RGB", (224, 224), color="red")
+    img_bytes1 = io.BytesIO()
+    img1.save(img_bytes1, format="JPEG")
+    img_bytes1.seek(0)
+    
+    img2 = Image.new("RGB", (224, 224), color="blue")
+    img_bytes2 = io.BytesIO()
+    img2.save(img_bytes2, format="JPEG")
+    img_bytes2.seek(0)
+    
+    headers = {"Authorization": "Bearer mock-token"}
+    files = [
+        ("files", ("batch_img1.jpg", img_bytes1, "image/jpeg")),
+        ("files", ("batch_img2.jpg", img_bytes2, "image/jpeg"))
+    ]
+    
+    response = client.post("/api/predict/batch", headers=headers, files=files)
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 2
+    for item in data:
+        assert item["status"] == "success"
+        assert item["prediction"] in ("REAL", "FAKE")
+        assert isinstance(item["confidence"], float)
+        assert "orig_b64" in item
+        assert "heat_b64" in item

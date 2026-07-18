@@ -39,7 +39,7 @@ export default function ResultCard({
           <div>
             <h3 className="font-space text-2xl font-bold">Analysis Verdict</h3>
             <p className="text-zinc-400 text-xs mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono">
-              <span>🤖 Model: EfficientNet-B0 v1.0 (VisionGuard)</span>
+              <span>🤖 Model: EfficientNet-B0 v1.0 (Astra Lens)</span>
               <span>⏱️ Processing: {processingTime}</span>
             </p>
           </div>

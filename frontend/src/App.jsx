@@ -352,7 +352,7 @@ export default function App() {
 
       {/* Global Footer */}
       <footer className="w-full py-8 text-center text-xs text-zinc-600 border-t border-white/5 bg-zinc-950/40 font-mono mt-auto">
-        &copy; {new Date().getFullYear()} VisionGuard AI. Powered by FastAPI, PyTorch EfficientNet-B0 & React.
+        &copy; {new Date().getFullYear()} Astra Lens. Powered by FastAPI, PyTorch EfficientNet-B0 & React.
       </footer>
     </div>
   );

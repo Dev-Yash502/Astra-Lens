@@ -10,7 +10,7 @@ export default function Navbar({ currentTab, setCurrentTab, user, onSignOut, onO
       >
         <Shield className="w-8 h-8 text-indigo-500 animate-pulse" />
         <span className="font-space font-bold text-xl bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
-          VisionGuard AI v2.0
+          Astra Lens
         </span>
       </div>
 

@@ -23,7 +23,7 @@ from app.database import prune_old_scans
 from app.gradcam import GradCAM, overlay_heatmap, GradCAMPlusPlus
 from app.schemas import PredictResponse, HistoryItem
 
-app = FastAPI(title="VisionGuard AI Clone", description="Explainable AI Synthetic Image Classifier")
+app = FastAPI(title="Astra Lens", description="Explainable AI Synthetic Image Classifier")
 
 # Configure CORS for local dev
 app.add_middleware(

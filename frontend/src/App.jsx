@@ -10,6 +10,7 @@ import ResultCard from './components/ResultCard';
 import HistoryTable from './components/HistoryTable';
 import FaqPanel from './components/FaqPanel';
 import Aurora from './components/Aurora';
+import AdminDashboard from './components/AdminDashboard';
 
 export default function App() {
   // Supabase Configuration States
@@ -49,6 +50,8 @@ export default function App() {
   // Analytics
   const [totalScans, setTotalScans] = useState(0);
   const [fakeCount, setFakeCount] = useState(0);
+
+  const isAdmin = !!(user && user.email && user.email.toLowerCase().includes('admin'));
 
   // Setup Supabase Client
   useEffect(() => {
@@ -127,30 +130,61 @@ export default function App() {
     setAuthError('');
     setAuthSuccess('');
 
-    if (!supabase) {
-      setAuthError('Supabase is not configured. Click the settings icon at top right.');
-      return;
-    }
-
     try {
-      if (authView === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName }
-          }
-        });
-        if (error) throw error;
-        setAuthSuccess('Verification email sent! Check your inbox.');
+      if (supabase) {
+        // SUPABASE REAL AUTH MODE
+        if (authView === 'signup') {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { full_name: fullName }
+            }
+          });
+          if (error) throw error;
+          setAuthSuccess('Verification email sent! Check your inbox.');
+        } else {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          if (error) throw error;
+          setUser(data.user);
+          setCurrentTab('scan');
+        }
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        if (error) throw error;
-        setUser(data.user);
-        setCurrentTab('scan');
+        // MOCK OFFLINE DEV AUTH MODE
+        if (authView === 'signup') {
+          const response = await fetch('/api/auth/mock/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, full_name: fullName || email.split('@')[0] })
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setAuthSuccess('Registration successful (Mock Dev Mode)! You can now log in.');
+            setAuthView('login');
+          } else {
+            throw new Error(data.detail || 'Mock signup failed');
+          }
+        } else {
+          const response = await fetch('/api/auth/mock/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setUser({
+              id: 'mock-user-id-' + email.split('@')[0],
+              email: email,
+              user_metadata: { full_name: email.split('@')[0].toUpperCase() }
+            });
+            setCurrentTab('scan');
+          } else {
+            throw new Error(data.detail || 'Mock login failed');
+          }
+        }
       }
     } catch (err) {
       setAuthError(err.message || 'Authentication failed.');
@@ -280,6 +314,7 @@ export default function App() {
         currentTab={currentTab} 
         setCurrentTab={setCurrentTab} 
         user={user} 
+        isAdmin={isAdmin}
         onSignOut={handleSignOut} 
         onOpenConfig={() => setShowConfigModal(true)} 
       />
@@ -398,6 +433,11 @@ export default function App() {
         {/* DETAILS/VIVA FAQ TAB */}
         {currentTab === 'about' && (
           <FaqPanel />
+        )}
+
+        {/* SECURE ADMIN PANEL */}
+        {currentTab === 'admin' && user && isAdmin && (
+          <AdminDashboard onViewScan={handleLoadResultFromHistory} />
         )}
 
       </main>

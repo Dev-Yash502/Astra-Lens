@@ -2,7 +2,7 @@ import React from 'react';
 import { LogOut } from 'lucide-react';
 import logoImg from '../assets/logo_transparent.png';
 
-export default function Navbar({ currentTab, setCurrentTab, user, onSignOut, onOpenConfig }) {
+export default function Navbar({ currentTab, setCurrentTab, user, isAdmin, onSignOut, onOpenConfig }) {
   return (
     <header className="glass-panel rounded-none border-t-0 border-x-0 sticky top-0 z-50 flex items-center justify-between px-8 py-5">
       <div 
@@ -33,6 +33,14 @@ export default function Navbar({ currentTab, setCurrentTab, user, onSignOut, onO
             >
               Scan History
             </span>
+            {isAdmin && (
+              <span 
+                onClick={() => setCurrentTab('admin')}
+                className={`cursor-pointer transition-colors ${currentTab === 'admin' ? 'text-indigo-400' : 'text-zinc-400 hover:text-white'}`}
+              >
+                Admin Panel
+              </span>
+            )}
           </>
         )}
         <span 

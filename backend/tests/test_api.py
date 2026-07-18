@@ -135,3 +135,54 @@ def test_batch_prediction():
         assert isinstance(item["confidence"], float)
         assert "orig_b64" in item
         assert "heat_b64" in item
+
+from app.auth import get_current_user
+
+def test_admin_endpoints_authorization():
+    """Verify that regular users are blocked and admins are allowed to fetch stats, users, and scans"""
+    # 1. As regular user (demo@example.com) - Expect 403 Forbidden
+    headers = {"Authorization": "Bearer mock-token"}
+    response = client.get("/api/admin/stats", headers=headers)
+    assert response.status_code == 403
+
+    # 2. As admin user (admin@astralens.com) using dependency override - Expect 200 OK
+    def mock_admin_user():
+        return {"id": "admin-12345", "email": "admin@astralens.com"}
+
+    app.dependency_overrides[get_current_user] = mock_admin_user
+    try:
+        # Test Stats
+        stats_resp = client.get("/api/admin/stats", headers=headers)
+        assert stats_resp.status_code == 200
+        stats_data = stats_resp.json()
+        assert "total_users" in stats_data
+        assert "total_scans" in stats_data
+        assert "fake_count" in stats_data
+
+        # Test Users
+        users_resp = client.get("/api/admin/users", headers=headers)
+        assert users_resp.status_code == 200
+        users_data = users_resp.json()
+        assert isinstance(users_data, list)
+        assert len(users_data) >= 1
+        assert any("email" in u for u in users_data)
+
+        # Test Scans
+        scans_resp = client.get("/api/admin/scans", headers=headers)
+        assert scans_resp.status_code == 200
+        scans_data = scans_resp.json()
+        assert isinstance(scans_data, list)
+    finally:
+        app.dependency_overrides.clear()
+
+def test_analytics_summary_endpoint():
+    """Verify that standard users can access the analytics summary endpoint"""
+    headers = {"Authorization": "Bearer mock-token"}
+    response = client.get("/api/analytics/summary", headers=headers)
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert "total_scans" in data
+    assert "fake_count" in data
+    assert "confidence_distribution" in data
+    assert "timeline_data" in data

@@ -34,14 +34,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Import routers
+from app.admin import router as admin_router
+from app.analytics import router as analytics_router
+
+app.include_router(admin_router)
+app.include_router(analytics_router)
+
 from datetime import datetime
 
 # In-memory user-specific prediction cache (Max 100 elements)
 MAX_CACHE_SIZE = 100
 prediction_cache = {}
 
-# Global Mock predictions cache for local-only history (no-Supabase mode)
-MOCK_PREDICTIONS = {}
+from app.mock_db import MOCK_PREDICTIONS, MOCK_LOGINS, MOCK_SIGNUPS
 
 def prune_local_mock_scans(max_scans: int = 50):
     global MOCK_PREDICTIONS
@@ -272,6 +278,48 @@ async def get_history(user = Depends(get_current_user)):
         return res.data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch history: {str(e)}")
+
+from pydantic import BaseModel
+
+class MockSignUpData(BaseModel):
+    email: str
+    password: str
+    full_name: str
+
+class MockLoginData(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/auth/mock/signup")
+async def mock_signup(data: MockSignUpData):
+    user_id = str(uuid.uuid4())
+    user_record = {
+        "id": user_id,
+        "email": data.email,
+        "full_name": data.full_name,
+        "created_at": datetime.now()
+    }
+    MOCK_SIGNUPS.append(user_record)
+    return {"status": "success", "message": "User registered successfully"}
+
+@app.post("/api/auth/mock/login")
+async def mock_login(data: MockLoginData):
+    login_record = {
+        "email": data.email,
+        "timestamp": datetime.now()
+    }
+    MOCK_LOGINS.append(login_record)
+    
+    # Auto-register if not already registered
+    user_exists = any(u.get("email") == data.email for u in MOCK_SIGNUPS)
+    if not user_exists:
+        MOCK_SIGNUPS.append({
+            "id": str(uuid.uuid4()),
+            "email": data.email,
+            "full_name": data.email.split("@")[0].capitalize(),
+            "created_at": datetime.now()
+        })
+    return {"status": "success", "token": "mock-token"}
 
 # Mount static folder for local fallback static files
 app.mount("/static", StaticFiles(directory="static"), name="static")

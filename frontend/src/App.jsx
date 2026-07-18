@@ -228,6 +228,33 @@ export default function App() {
     }
   };
 
+  // Handle Google Authentication
+  const handleGoogleSignIn = async () => {
+    setAuthError('');
+    setAuthSuccess('');
+    try {
+      if (supabase) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin
+          }
+        });
+        if (error) throw error;
+      } else {
+        setAuthSuccess('Mock Google authentication successful!');
+        setUser({
+          id: 'google-mock-id-998877',
+          email: 'google_user@astralens.com',
+          user_metadata: { full_name: 'Google User' }
+        });
+        setCurrentTab('scan');
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Google authentication failed.');
+    }
+  };
+
   const handleSignOut = async () => {
     if (supabase) {
       await supabase.auth.signOut();
@@ -387,6 +414,7 @@ export default function App() {
               authSuccess={authSuccess}
               setAuthSuccess={setAuthSuccess}
               onAuthSubmit={handleAuthSubmit}
+              onGoogleAuth={handleGoogleSignIn}
             />
           </div>
         )}

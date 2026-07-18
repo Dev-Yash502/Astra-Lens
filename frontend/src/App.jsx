@@ -64,7 +64,8 @@ export default function App() {
         client.auth.getSession().then(({ data: { session } }) => {
           if (session) {
             setUser(session.user);
-            setCurrentTab('scan');
+            const isUserAdmin = session.user.email?.toLowerCase().includes('admin');
+            setCurrentTab(isUserAdmin ? 'admin' : 'scan');
           }
         });
 
@@ -72,6 +73,8 @@ export default function App() {
         const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
           if (session) {
             setUser(session.user);
+            const isUserAdmin = session.user.email?.toLowerCase().includes('admin');
+            setCurrentTab(isUserAdmin ? 'admin' : 'scan');
           } else {
             setUser(null);
           }
@@ -158,7 +161,7 @@ export default function App() {
             email: 'admin@astralens.com',
             user_metadata: { full_name: 'System Administrator' }
           });
-          setCurrentTab('scan');
+          setCurrentTab('admin');
         } else {
           throw new Error(data.detail || 'Administrator login failed');
         }
@@ -181,7 +184,8 @@ export default function App() {
           });
           if (error) throw error;
           setUser(data.user);
-          setCurrentTab('scan');
+          const isUserAdmin = data.user.email?.toLowerCase().includes('admin');
+          setCurrentTab(isUserAdmin ? 'admin' : 'scan');
         }
       } else {
         // MOCK OFFLINE DEV AUTH MODE
@@ -211,7 +215,8 @@ export default function App() {
               email: email,
               user_metadata: { full_name: email.split('@')[0].toUpperCase() }
             });
-            setCurrentTab('scan');
+            const isUserAdmin = email.toLowerCase().includes('admin');
+            setCurrentTab(isUserAdmin ? 'admin' : 'scan');
           } else {
             throw new Error(data.detail || 'Mock login failed');
           }
@@ -474,7 +479,7 @@ export default function App() {
 
         {/* SECURE ADMIN PANEL */}
         {currentTab === 'admin' && user && isAdmin && (
-          <AdminDashboard onViewScan={handleLoadResultFromHistory} />
+          <AdminDashboard token={user.email.toLowerCase().includes('admin') ? 'admin-super-token' : 'mock-token'} onViewScan={handleLoadResultFromHistory} />
         )}
 
       </main>

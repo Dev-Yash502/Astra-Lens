@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, ShieldAlert, Cpu, Activity, Clock, FileText, ExternalLink, Calendar, Search } from 'lucide-react';
 
-export default function AdminDashboard({ onViewScan }) {
+export default function AdminDashboard({ token, onViewScan }) {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [scans, setScans] = useState([]);
@@ -16,18 +16,20 @@ export default function AdminDashboard({ onViewScan }) {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+
       // Fetch stats
-      const statsRes = await fetch('/api/admin/stats');
+      const statsRes = await fetch('/api/admin/stats', { headers });
       const statsData = await statsRes.json();
       setStats(statsData);
 
       // Fetch users
-      const usersRes = await fetch('/api/admin/users');
+      const usersRes = await fetch('/api/admin/users', { headers });
       const usersData = await usersRes.json();
       setUsers(usersData);
 
       // Fetch all scans
-      const scansRes = await fetch('/api/admin/scans');
+      const scansRes = await fetch('/api/admin/scans', { headers });
       const scansData = await scansRes.json();
       setScans(scansData);
     } catch (error) {
@@ -37,16 +39,16 @@ export default function AdminDashboard({ onViewScan }) {
     }
   };
 
-  const filteredScans = scans.filter(s => 
-    s.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.prediction.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredScans = Array.isArray(scans) ? scans.filter(s => 
+    (s.filename || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.prediction || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.user_id && s.user_id.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ) : [];
 
-  const filteredUsers = users.filter(u => 
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredUsers = Array.isArray(users) ? users.filter(u => 
+    (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (u.full_name && u.full_name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ) : [];
 
   if (loading) {
     return (

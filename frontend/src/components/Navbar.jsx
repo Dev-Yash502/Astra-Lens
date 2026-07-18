@@ -9,7 +9,7 @@ export default function Navbar({ currentTab, setCurrentTab, user, onSignOut, onO
         onClick={() => setCurrentTab('landing')}
         className="flex items-center cursor-pointer select-none"
       >
-        <img src={logoImg} alt="Astra Lens Logo" className="h-16 w-auto object-contain animate-pulse" />
+        <img src={logoImg} alt="Astra Lens Logo" className="h-10 w-auto object-contain animate-pulse" />
       </div>
 
       <nav className="hidden md:flex items-center gap-8 font-space">

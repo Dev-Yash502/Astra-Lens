@@ -176,7 +176,8 @@ export default function App() {
             }
           });
           if (error) throw error;
-          setAuthSuccess('Verification email sent! Check your inbox.');
+          setAuthSuccess('Registration successful! You can now log in.');
+          setAuthView('login');
         } else {
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
@@ -197,7 +198,7 @@ export default function App() {
           });
           const data = await response.json();
           if (response.ok) {
-            setAuthSuccess('Registration successful (Mock Dev Mode)! You can now log in.');
+            setAuthSuccess('Registration successful! You can now log in.');
             setAuthView('login');
           } else {
             throw new Error(data.detail || 'Mock signup failed');
@@ -211,11 +212,11 @@ export default function App() {
           const data = await response.json();
           if (response.ok) {
             setUser({
-              id: 'mock-user-id-' + email.split('@')[0],
-              email: email,
-              user_metadata: { full_name: email.split('@')[0].toUpperCase() }
+              id: data.user.id,
+              email: data.user.email,
+              user_metadata: { full_name: data.user.full_name }
             });
-            const isUserAdmin = email.toLowerCase().includes('admin');
+            const isUserAdmin = data.user.email?.toLowerCase().includes('admin');
             setCurrentTab(isUserAdmin ? 'admin' : 'scan');
           } else {
             throw new Error(data.detail || 'Mock login failed');

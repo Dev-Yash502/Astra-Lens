@@ -324,7 +324,15 @@ async def mock_login(data: MockLoginData):
                     "full_name": "System Administrator",
                     "created_at": datetime.now()
                 })
-            return {"status": "success", "token": "admin-super-token"}
+            return {
+                "status": "success", 
+                "token": "admin-super-token",
+                "user": {
+                    "id": "admin-12345",
+                    "email": "admin@astralens.com",
+                    "full_name": "System Administrator"
+                }
+            }
         else:
             raise HTTPException(status_code=401, detail="Incorrect password for administrator")
             
@@ -334,16 +342,34 @@ async def mock_login(data: MockLoginData):
     }
     MOCK_LOGINS.append(login_record)
     
-    # Auto-register if not already registered
-    user_exists = any(u.get("email") == data.email for u in MOCK_SIGNUPS)
-    if not user_exists:
-        MOCK_SIGNUPS.append({
+    # Search for user by email OR full_name (case-insensitive username check!)
+    existing_user = None
+    for u in MOCK_SIGNUPS:
+        if (u.get("email") or "").strip().lower() == email_clean or (u.get("full_name") or "").strip().lower() == email_clean:
+            existing_user = u
+            break
+            
+    if not existing_user:
+        # If user doesn't exist, we auto-create them
+        user_email = email_clean if "@" in email_clean else f"{email_clean}@astralens.com"
+        user_fullname = email_clean.split("@")[0].capitalize()
+        existing_user = {
             "id": str(uuid.uuid4()),
-            "email": data.email,
-            "full_name": data.email.split("@")[0].capitalize(),
+            "email": user_email,
+            "full_name": user_fullname,
             "created_at": datetime.now()
-        })
-    return {"status": "success", "token": "mock-token"}
+        }
+        MOCK_SIGNUPS.append(existing_user)
+        
+    return {
+        "status": "success", 
+        "token": "mock-token",
+        "user": {
+            "id": existing_user["id"],
+            "email": existing_user["email"],
+            "full_name": existing_user["full_name"]
+        }
+    }
 
 # Mount static folder for local fallback static files
 app.mount("/static", StaticFiles(directory="static"), name="static")

@@ -48,24 +48,26 @@ export default function LoginCard({
         <form onSubmit={onAuthSubmit} className="space-y-6">
           {authView === 'signup' && (
             <div>
-              <label className="block text-zinc-400 text-sm mb-2">Full Name</label>
+              <label className="block text-zinc-400 text-sm mb-2">Full Name / Username</label>
               <input 
                 type="text" 
                 required 
                 className="glass-input" 
-                placeholder="John Doe"
+                placeholder="Enter full name or username"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
               />
             </div>
           )}
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Email or Username</label>
+            <label className="block text-zinc-400 text-sm mb-2">
+              {authView === 'signup' ? 'Email Address' : 'Email or Username'}
+            </label>
             <input 
               type="text" 
               required 
               className="glass-input" 
-              placeholder="Enter email or 'admin'"
+              placeholder={authView === 'signup' ? 'name@domain.com' : 'Enter email or username'}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

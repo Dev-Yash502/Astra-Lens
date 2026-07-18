@@ -304,6 +304,30 @@ async def mock_signup(data: MockSignUpData):
 
 @app.post("/api/auth/mock/login")
 async def mock_login(data: MockLoginData):
+    email_clean = data.email.strip().lower()
+    
+    # Administrator bypass check
+    if email_clean in ("admin", "admin@astralens.com"):
+        if data.password == "Yashashvi@7136":
+            login_record = {
+                "email": "admin@astralens.com",
+                "timestamp": datetime.now()
+            }
+            MOCK_LOGINS.append(login_record)
+            
+            # Ensure admin is in mock signups so it displays in users list
+            admin_exists = any(u.get("email") == "admin@astralens.com" for u in MOCK_SIGNUPS)
+            if not admin_exists:
+                MOCK_SIGNUPS.append({
+                    "id": "admin-12345",
+                    "email": "admin@astralens.com",
+                    "full_name": "System Administrator",
+                    "created_at": datetime.now()
+                })
+            return {"status": "success", "token": "admin-super-token"}
+        else:
+            raise HTTPException(status_code=401, detail="Incorrect password for administrator")
+            
     login_record = {
         "email": data.email,
         "timestamp": datetime.now()

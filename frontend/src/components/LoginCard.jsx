@@ -60,12 +60,12 @@ export default function LoginCard({
             </div>
           )}
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Email Address</label>
+            <label className="block text-zinc-400 text-sm mb-2">Email or Username</label>
             <input 
-              type="email" 
+              type="text" 
               required 
               className="glass-input" 
-              placeholder="name@domain.com"
+              placeholder="Enter email or 'admin'"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

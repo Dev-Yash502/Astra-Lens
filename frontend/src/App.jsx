@@ -9,7 +9,6 @@ import UploadBox from './components/UploadBox';
 import ResultCard from './components/ResultCard';
 import HistoryTable from './components/HistoryTable';
 import FaqPanel from './components/FaqPanel';
-import ConfigModal from './components/ConfigModal';
 import Aurora from './components/Aurora';
 
 export default function App() {
@@ -329,15 +328,7 @@ export default function App() {
 
       </main>
 
-      {/* Supabase Configurations Setup Modal */}
-      <ConfigModal 
-        showConfigModal={showConfigModal}
-        supabaseUrl={supabaseUrl}
-        setSupabaseUrl={setSupabaseUrl}
-        supabaseAnonKey={supabaseAnonKey}
-        setSupabaseAnonKey={setSupabaseAnonKey}
-        onSaveConfig={handleSaveConfig}
-      />
+
 
       {scanResult && (
         <div style={{ display: 'none' }}>

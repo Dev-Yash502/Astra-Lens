@@ -7,12 +7,9 @@ export default function Navbar({ currentTab, setCurrentTab, user, onSignOut, onO
     <header className="glass-panel rounded-none border-t-0 border-x-0 sticky top-0 z-50 flex items-center justify-between px-8 py-5">
       <div 
         onClick={() => setCurrentTab('landing')}
-        className="flex items-center gap-3 cursor-pointer select-none"
+        className="flex items-center cursor-pointer select-none"
       >
-        <img src={logoImg} alt="Astra Lens Logo" className="w-8 h-8 object-contain animate-pulse" />
-        <span className="font-space font-bold text-xl bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
-          Astra Lens
-        </span>
+        <img src={logoImg} alt="Astra Lens Logo" className="h-12 w-auto object-contain animate-pulse" />
       </div>
 
       <nav className="hidden md:flex items-center gap-8 font-space">

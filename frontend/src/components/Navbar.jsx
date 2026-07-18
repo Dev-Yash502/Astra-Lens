@@ -1,5 +1,6 @@
 import React from 'react';
-import { Shield, Key, LogOut } from 'lucide-react';
+import { Key, LogOut } from 'lucide-react';
+import logoImg from '../assets/logo_transparent.png';
 
 export default function Navbar({ currentTab, setCurrentTab, user, onSignOut, onOpenConfig }) {
   return (
@@ -8,7 +9,7 @@ export default function Navbar({ currentTab, setCurrentTab, user, onSignOut, onO
         onClick={() => setCurrentTab('landing')}
         className="flex items-center gap-3 cursor-pointer select-none"
       >
-        <Shield className="w-8 h-8 text-indigo-500 animate-pulse" />
+        <img src={logoImg} alt="Astra Lens Logo" className="w-8 h-8 object-contain animate-pulse" />
         <span className="font-space font-bold text-xl bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
           Astra Lens
         </span>

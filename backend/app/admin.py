@@ -43,8 +43,12 @@ async def list_registered_users(user = Depends(verify_admin_privilege)):
                     uid = s.get("user_id")
                     if uid and uid not in unique_users:
                         meta = USER_METADATA_MAP.get(str(uid), {})
-                        user_email = meta.get("email") or f"user_{uid[:6]}@supabase.com"
-                        user_fullname = meta.get("full_name") or f"User {uid[:6]}"
+                        # Clean fallback mapping for old database scans
+                        default_email = "yashashviraj7136@gmail.com" if "26007e" in str(uid).lower() else f"user_{uid[:6]}@gmail.com"
+                        default_name = "Yashashvi Raj" if "26007e" in str(uid).lower() else f"User {uid[:6].capitalize()}"
+                        
+                        user_email = meta.get("email") or default_email
+                        user_fullname = meta.get("full_name") or default_name
                         
                         unique_users[uid] = {
                             "id": uid,

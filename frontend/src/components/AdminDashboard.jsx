@@ -6,7 +6,7 @@ export default function AdminDashboard({ token, onViewScan }) {
   const [users, setUsers] = useState([]);
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState('scans'); // 'scans' | 'users'
+  const [activeSubTab, setActiveSubTab] = useState('users'); // Default directly to Registered Accounts view!
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -234,8 +234,17 @@ export default function AdminDashboard({ token, onViewScan }) {
                   </tr>
                 ) : (
                   filteredUsers.map((u) => {
-                    const formattedReg = u.created_at ? new Date(u.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'N/A';
-                    const formattedLog = u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'N/A';
+                    const formatDateStr = (dateVal) => {
+                      if (!dateVal) return 'N/A';
+                      try {
+                        const d = new Date(dateVal);
+                        return isNaN(d.getTime()) ? String(dateVal) : d.toLocaleDateString(undefined, { dateStyle: 'medium' });
+                      } catch {
+                        return String(dateVal);
+                      }
+                    };
+                    const formattedReg = formatDateStr(u.created_at);
+                    const formattedLog = formatDateStr(u.last_sign_in_at);
 
                     return (
                       <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">

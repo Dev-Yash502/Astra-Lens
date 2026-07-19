@@ -47,7 +47,7 @@ export default function Navbar({ currentTab, setCurrentTab, user, isAdmin, onSig
           onClick={() => setCurrentTab('about')}
           className={`cursor-pointer transition-colors ${currentTab === 'about' ? 'text-indigo-400' : 'text-zinc-400 hover:text-white'}`}
         >
-          Manual & Viva FAQ
+          Manual & FAQ
         </span>
       </nav>
 

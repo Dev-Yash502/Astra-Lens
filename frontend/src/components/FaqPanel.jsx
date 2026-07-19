@@ -5,10 +5,10 @@ export default function FaqPanel() {
     <div className="w-full max-w-4xl space-y-12">
       <div className="text-center max-w-2xl mx-auto">
         <h2 className="text-4xl font-extrabold font-space bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent mb-3">
-          Viva Cheatsheet & Documentation
+          FAQ & Technical Documentation
         </h2>
         <p className="text-zinc-400">
-          Key technical details of your project to explain to your examiners.
+          Key technical specifications, dataset details, and architecture documentation.
         </p>
       </div>
 
@@ -68,7 +68,7 @@ export default function FaqPanel() {
 
         <div className="glass-panel p-8 space-y-4 md:col-span-2">
           <h3 className="font-space text-xl font-bold text-indigo-400 flex items-center gap-2">
-            ❓ Common Viva Questions & Answers
+            ❓ Frequently Asked Questions (FAQ)
           </h3>
           
           <div className="space-y-6 text-sm divide-y divide-white/5 pt-2">

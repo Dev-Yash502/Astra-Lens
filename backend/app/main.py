@@ -290,6 +290,8 @@ class MockLoginData(BaseModel):
     email: str
     password: str
 
+from app.auth import record_user_metadata
+
 @app.post("/api/auth/mock/signup")
 async def mock_signup(data: MockSignUpData):
     user_id = str(uuid.uuid4())
@@ -300,6 +302,7 @@ async def mock_signup(data: MockSignUpData):
         "created_at": datetime.now()
     }
     MOCK_SIGNUPS.append(user_record)
+    record_user_metadata(user_id, data.email, data.full_name)
     return {"status": "success", "message": "User registered successfully"}
 
 @app.post("/api/auth/mock/login")
@@ -324,6 +327,7 @@ async def mock_login(data: MockLoginData):
                     "full_name": "System Administrator",
                     "created_at": datetime.now()
                 })
+            record_user_metadata("admin-12345", "admin@astralens.com", "System Administrator")
             return {
                 "status": "success", 
                 "token": "admin-super-token",
@@ -360,6 +364,8 @@ async def mock_login(data: MockLoginData):
             "created_at": datetime.now()
         }
         MOCK_SIGNUPS.append(existing_user)
+
+    record_user_metadata(existing_user["id"], existing_user["email"], existing_user.get("full_name"))
         
     return {
         "status": "success", 

@@ -17,74 +17,13 @@ async def verify_admin_privilege(user = Depends(get_current_user)):
         )
     return user
 
-@router.get("/stats")
-async def get_admin_stats(user = Depends(verify_admin_privilege)):
-    use_mock = True
-    scans_data = []
-    
-    if supabase:
-        try:
-            # Fetch all scans to compile stats
-            res = supabase.table("scans").select("prediction, processing_time_ms").execute()
-            scans_data = res.data or []
-            use_mock = False
-        except Exception as e:
-            print(f"[ADMIN WARNING] Supabase connection failed: {e}. Falling back to mock stats.", flush=True)
-
-    if not use_mock:
-        try:
-            total_scans = len(scans_data)
-            fake_count = sum(1 for s in scans_data if s.get("prediction") == "FAKE")
-            real_count = total_scans - fake_count
-            
-            times = [s.get("processing_time_ms") for s in scans_data if s.get("processing_time_ms") is not None]
-            avg_time = sum(times) / len(times) if times else 0
-            
-            # Fetch users count if possible
-            try:
-                users_res = supabase.auth.admin.list_users()
-                total_users = len(users_res.users) if hasattr(users_res, 'users') else 0
-            except Exception:
-                unique_users = {s.get("user_id") for s in scans_data if s.get("user_id")}
-                total_users = max(len(unique_users), 1)
-                
-            return {
-                "total_users": total_users,
-                "total_scans": total_scans,
-                "fake_count": fake_count,
-                "real_count": real_count,
-                "avg_processing_time_ms": int(avg_time)
-            }
-        except Exception as compile_err:
-            print(f"[ADMIN WARNING] Stats compilation failed: {compile_err}. Using mock fallback.", flush=True)
-            
-    # Mock mode stats fallback
-    scans_data = list(MOCK_PREDICTIONS.values())
-    total_scans = len(scans_data)
-    fake_count = sum(1 for s in scans_data if s.get("prediction") == "FAKE")
-    real_count = total_scans - fake_count
-    
-    times = [350, 480, 220, 610]  # mock fallback times
-    avg_time = sum(times) / len(times)
-    
-    unique_emails = {"demo@example.com"} | {u.get("email") for u in MOCK_SIGNUPS}
-    
-    return {
-        "total_users": len(unique_emails),
-        "total_scans": total_scans,
-        "fake_count": fake_count,
-        "real_count": real_count,
-        "avg_processing_time_ms": int(avg_time)
-    }
-
 @router.get("/users")
 async def list_registered_users(user = Depends(verify_admin_privilege)):
     users_list = []
-    use_mock = True
     
+    # 1. Fetch from Supabase if active
     if supabase:
         try:
-            # Query users through Admin API
             users_res = supabase.auth.admin.list_users()
             for u in users_res.users:
                 users_list.append({
@@ -94,9 +33,8 @@ async def list_registered_users(user = Depends(verify_admin_privilege)):
                     "created_at": u.created_at,
                     "last_sign_in_at": u.last_sign_in_at
                 })
-            use_mock = False
-        except Exception as e:
-            # If admin listing fails due to permissions, aggregate from database scans
+        except Exception:
+            # Fallback: aggregate from database scans
             try:
                 res = supabase.table("scans").select("user_id, created_at").execute()
                 scans = res.data or []
@@ -111,20 +49,23 @@ async def list_registered_users(user = Depends(verify_admin_privilege)):
                             "created_at": s.get("created_at"),
                             "last_sign_in_at": s.get("created_at")
                         }
-                users_list = list(unique_users.values())
-                use_mock = False
+                users_list.extend(list(unique_users.values()))
             except Exception as db_err:
-                print(f"[ADMIN WARNING] Supabase listing failed: {db_err}. Falling back to mock.", flush=True)
+                print(f"[ADMIN WARNING] Supabase listing failed: {db_err}", flush=True)
 
-    if use_mock:
-        users_list = [{
+    # 2. Always merge with mock users so dashboard is populated with high-fidelity dev accounts
+    # Demo User
+    if not any(u["email"].lower() == "demo@example.com" for u in users_list):
+        users_list.append({
             "id": "00000000-0000-0000-0000-000000000000",
             "email": "demo@example.com",
             "full_name": "Demo User",
             "created_at": "2026-07-15T12:00:00Z",
             "last_sign_in_at": "2026-07-18T18:00:00Z"
-        }]
-        for u in MOCK_SIGNUPS:
+        })
+    # Mock Signups
+    for u in MOCK_SIGNUPS:
+        if not any(x["email"].lower() == u.get("email").lower() for x in users_list):
             users_list.append({
                 "id": u.get("id"),
                 "email": u.get("email"),
@@ -137,14 +78,55 @@ async def list_registered_users(user = Depends(verify_admin_privilege)):
 
 @router.get("/scans")
 async def list_all_scans(user = Depends(verify_admin_privilege)):
+    scans_list = []
+    
+    # 1. Fetch live scans from Supabase
     if supabase:
         try:
             res = supabase.table("scans").select("*").order("created_at", desc=True).execute()
-            return res.data or []
+            scans_list = res.data or []
         except Exception as e:
-            print(f"[ADMIN WARNING] Supabase scans select failed: {e}. Falling back to mock.", flush=True)
+            print(f"[ADMIN WARNING] Supabase scans select failed: {e}", flush=True)
             
-    # Return mock scans ordered by created_at descending
+    # 2. Merge with mock scans to populate the dashboard with visual details
     mock_scans = list(MOCK_PREDICTIONS.values())
-    mock_scans.sort(key=lambda x: x.get("created_at"), reverse=True)
-    return mock_scans
+    for ms in mock_scans:
+        # Avoid duplicate mock files
+        if not any(s.get("filename") == ms.get("filename") for s in scans_list):
+            scans_list.append(ms)
+            
+    # Sort all by created_at descending safely handling both datetime objects and ISO strings
+    scans_list.sort(key=lambda x: str(x.get("created_at")) if x.get("created_at") is not None else "", reverse=True)
+    return scans_list
+
+@router.get("/stats")
+async def get_admin_stats(user = Depends(verify_admin_privilege)):
+    try:
+        # Fetch merged users and scans
+        merged_users = await list_registered_users(user=user)
+        merged_scans = await list_all_scans(user=user)
+        
+        total_scans = len(merged_scans)
+        fake_count = sum(1 for s in merged_scans if s.get("prediction") == "FAKE")
+        real_count = total_scans - fake_count
+        
+        times = [s.get("processing_time_ms") for s in merged_scans if s.get("processing_time_ms") is not None]
+        avg_time = sum(times) / len(times) if times else 380 # default average fallback
+        
+        return {
+            "total_users": len(merged_users),
+            "total_scans": total_scans,
+            "fake_count": fake_count,
+            "real_count": real_count,
+            "avg_processing_time_ms": int(avg_time)
+        }
+    except Exception as e:
+        print(f"[ADMIN WARNING] Merging stats failed: {e}", flush=True)
+        # Total fallback
+        return {
+            "total_users": len(MOCK_SIGNUPS) + 1,
+            "total_scans": len(MOCK_PREDICTIONS),
+            "fake_count": sum(1 for s in MOCK_PREDICTIONS.values() if s.get("prediction") == "FAKE"),
+            "real_count": sum(1 for s in MOCK_PREDICTIONS.values() if s.get("prediction") == "REAL"),
+            "avg_processing_time_ms": 380
+        }

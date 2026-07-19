@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Dict, Any
 from app.auth import get_current_user
 from app.core.config import supabase
-from app.mock_db import MOCK_PREDICTIONS, MOCK_LOGINS, MOCK_SIGNUPS
+from app.mock_db import MOCK_PREDICTIONS, MOCK_LOGINS, MOCK_SIGNUPS, USER_METADATA_MAP
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -42,10 +42,14 @@ async def list_registered_users(user = Depends(verify_admin_privilege)):
                 for s in scans:
                     uid = s.get("user_id")
                     if uid and uid not in unique_users:
+                        meta = USER_METADATA_MAP.get(str(uid), {})
+                        user_email = meta.get("email") or f"user_{uid[:6]}@supabase.com"
+                        user_fullname = meta.get("full_name") or f"User {uid[:6]}"
+                        
                         unique_users[uid] = {
                             "id": uid,
-                            "email": f"user_{uid[:6]}@supabase.com",
-                            "full_name": f"User {uid[:6]}",
+                            "email": user_email,
+                            "full_name": user_fullname,
                             "created_at": s.get("created_at"),
                             "last_sign_in_at": s.get("created_at")
                         }
@@ -53,7 +57,18 @@ async def list_registered_users(user = Depends(verify_admin_privilege)):
             except Exception as db_err:
                 print(f"[ADMIN WARNING] Supabase listing failed: {db_err}", flush=True)
 
-    # 2. Always merge with mock users so dashboard is populated with high-fidelity dev accounts
+    # 2. Always merge with mock users and tracked metadata so dashboard displays real names & gmail IDs
+    for key, meta in USER_METADATA_MAP.items():
+        if isinstance(meta, dict) and "email" in meta and "id" in meta:
+            if not any(x["email"].lower() == meta["email"].lower() for x in users_list):
+                users_list.append({
+                    "id": meta.get("id"),
+                    "email": meta.get("email"),
+                    "full_name": meta.get("full_name", meta.get("email").split("@")[0]),
+                    "created_at": meta.get("created_at", "2026-07-18T12:00:00Z"),
+                    "last_sign_in_at": meta.get("last_sign_in_at", "2026-07-19T18:00:00Z")
+                })
+
     # Demo User
     if not any(u["email"].lower() == "demo@example.com" for u in users_list):
         users_list.append({
@@ -63,6 +78,7 @@ async def list_registered_users(user = Depends(verify_admin_privilege)):
             "created_at": "2026-07-15T12:00:00Z",
             "last_sign_in_at": "2026-07-18T18:00:00Z"
         })
+
     # Mock Signups
     for u in MOCK_SIGNUPS:
         if not any(x["email"].lower() == u.get("email").lower() for x in users_list):

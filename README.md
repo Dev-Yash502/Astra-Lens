@@ -108,11 +108,11 @@ The React frontend application will start on `http://localhost:5173`.
 
 ---
 
-## 🔑 Administrator Panel Credentials
+## 🔑 Administrator Access
 
-To test administrative telemetry, user list auditing, and global scan metrics:
-* **Username:** `admin`
-* **Password:** `Yashashvi@7136`
+To access administrative telemetry, user list auditing, and global scan metrics:
+* Configure `ADMIN_USERNAME` and `ADMIN_PASSWORD` in your server environment variables or `.env` file.
+* Admin panel features live user account auditing, scan telemetry logs, and system metrics.
 
 ---
 

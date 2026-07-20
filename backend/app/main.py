@@ -308,10 +308,12 @@ async def mock_signup(data: MockSignUpData):
 @app.post("/api/auth/mock/login")
 async def mock_login(data: MockLoginData):
     email_clean = data.email.strip().lower()
+    admin_user = os.getenv("ADMIN_USERNAME", "admin").strip().lower()
+    admin_pass = os.getenv("ADMIN_PASSWORD", "Yashashvi@7136")
     
     # Administrator bypass check
-    if email_clean in ("admin", "admin@astralens.com"):
-        if data.password == "Yashashvi@7136":
+    if email_clean in (admin_user, f"{admin_user}@astralens.com"):
+        if data.password == admin_pass:
             login_record = {
                 "email": "admin@astralens.com",
                 "timestamp": datetime.now()

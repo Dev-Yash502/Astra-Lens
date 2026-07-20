@@ -35,6 +35,11 @@ else:
 model = model.to(device)
 model.eval()
 
+# Clean up temporary loading buffers from memory
+if 'checkpoint' in locals():
+    del checkpoint
+gc.collect()
+
 # Transforms for ImageNet pre-training / EfficientNet
 transform = transforms.Compose([
     transforms.ToPILImage(),

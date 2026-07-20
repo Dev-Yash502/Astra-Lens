@@ -55,9 +55,11 @@ class GradCAM:
         cam_min, cam_max = cam.min(), cam.max()
         if cam_max - cam_min > 1e-8:
             cam = (cam - cam_min) / (cam_max - cam_min)
-        else:
-            cam = np.zeros_like(cam)
-            
+        # Free intermediate tensor buffers to prevent memory build-up
+        del self.gradients, self.activations
+        self.gradients = None
+        self.activations = None
+
         return cam, class_idx
         
     def remove_hooks(self):

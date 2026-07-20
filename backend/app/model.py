@@ -4,6 +4,11 @@ import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 
+import gc
+
+# Conserve RAM on low-memory servers (e.g. Render Free Tier 512MB RAM limit)
+torch.set_num_threads(1)
+
 # Setup Model
 model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models", "checkpoints", "efficientnet_b0_visionguard.pth"))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

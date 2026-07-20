@@ -5,9 +5,13 @@ import shutil
 import asyncio
 import hashlib
 import time
-from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 import torch
 import torch.nn.functional as F
@@ -23,7 +27,10 @@ from app.database import prune_old_scans
 from app.gradcam import GradCAM, overlay_heatmap, GradCAMPlusPlus
 from app.schemas import PredictResponse, HistoryItem
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Astra Lens", description="Explainable AI Synthetic Image Classifier")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configure CORS for local dev
 app.add_middleware(
@@ -241,18 +248,22 @@ async def process_single_prediction(
             except Exception as e:
                 print(f"Failed to clean up temporary files: {e}")
 
-# Single Image Prediction Endpoint
+# Single Image Prediction Endpoint (30 requests/minute limit)
 @app.post("/api/predict", response_model=PredictResponse)
+@limiter.limit("30/minute")
 async def predict_image(
+    request: Request,
     files: UploadFile = File(...), 
     method: str = Form("gradcam"),
     user = Depends(get_current_user)
 ):
     return await process_single_prediction(files, method, user)
 
-# Batch Images Prediction Endpoint
+# Batch Images Prediction Endpoint (10 requests/minute limit)
 @app.post("/api/predict/batch", response_model=List[PredictResponse])
+@limiter.limit("10/minute")
 async def predict_batch(
+    request: Request,
     files: List[UploadFile] = File(...),
     method: str = Form("gradcam"),
     user = Depends(get_current_user)

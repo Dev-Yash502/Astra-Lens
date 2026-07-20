@@ -1,18 +1,36 @@
-# Python virtual environment
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environment
+venv/
+.venv/
 backend/venv/
 backend/.venv/
-backend/__pycache__/
-backend/*.pyc
 
-# Node dependencies and build files
-frontend/node_modules/
-frontend/dist/
-# OS metadata
-# Local configuration secrets
+# Environment Variables & Secrets
+.env
+*.env
 backend/.env
 frontend/.env
 supabase_credentials.txt
 
-# OS metadata
+# Node Dependencies & Build Artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# OS Generated Files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Temporary Test Assets
+backend/*.jpg
+backend/static/temp/*
+!backend/static/temp/.gitkeep

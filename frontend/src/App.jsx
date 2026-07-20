@@ -327,7 +327,12 @@ export default function App() {
         },
         body: formData
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ detail: 'Server response error. Please try again.' }));
+      
+      if (!response.ok) {
+        alert(typeof data.detail === 'string' ? data.detail : `Server error (${response.status}). Please try again.`);
+        return;
+      }
       
       if (isBatch) {
         if (Array.isArray(data) && data.length > 0) {
@@ -344,7 +349,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      alert('Error connecting to FastAPI backend.');
+      alert(`Network error: ${err.message || 'Could not connect to server.'}`);
     } finally {
       setIsScanning(false);
     }

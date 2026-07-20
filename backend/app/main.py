@@ -27,7 +27,13 @@ from app.database import prune_old_scans
 from app.gradcam import GradCAM, overlay_heatmap, GradCAMPlusPlus
 from app.schemas import PredictResponse, HistoryItem
 
-limiter = Limiter(key_func=get_remote_address)
+def get_real_ip(request: Request):
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+limiter = Limiter(key_func=get_real_ip)
 app = FastAPI(title="Astra Lens", description="Explainable AI Synthetic Image Classifier")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -248,9 +254,9 @@ async def process_single_prediction(
             except Exception as e:
                 print(f"Failed to clean up temporary files: {e}")
 
-# Single Image Prediction Endpoint (30 requests/minute limit)
+# Single Image Prediction Endpoint (60 requests/minute limit)
 @app.post("/api/predict", response_model=PredictResponse)
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")
 async def predict_image(
     request: Request,
     files: UploadFile = File(...), 
@@ -259,9 +265,9 @@ async def predict_image(
 ):
     return await process_single_prediction(files, method, user)
 
-# Batch Images Prediction Endpoint (10 requests/minute limit)
+# Batch Images Prediction Endpoint (30 requests/minute limit)
 @app.post("/api/predict/batch", response_model=List[PredictResponse])
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def predict_batch(
     request: Request,
     files: List[UploadFile] = File(...),
